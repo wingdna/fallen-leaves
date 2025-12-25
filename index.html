@@ -1,0 +1,152 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <base href="./" />
+    <meta name="theme-color" content="#060504" />
+    <meta name="description" content="马吊大师 - 明代士大夫的博弈智慧" />
+    
+    <!-- SECURITY HARDENING: Content Security Policy (Relaxed for Dev Stability) -->
+    <!-- 允许: WebSocket (for HMR), unsafe-eval (for DevTools), blobs (for Workers), * (for external CDNs) -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self' * data: blob: 'unsafe-inline' 'unsafe-eval';
+      script-src 'self' * data: blob: 'unsafe-inline' 'unsafe-eval';
+      connect-src 'self' * data: blob: ws: wss:;
+      img-src 'self' * data: blob:;
+      media-src 'self' * data: blob:;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com data:;
+    ">
+
+    <link rel="manifest" href="manifest.json" />
+    <title>马吊大师</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@200;400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+      html, body, #root { 
+        height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; 
+        background-color: #020305; color: #E8E4D9;
+        -webkit-tap-highlight-color: transparent; overscroll-behavior: none;
+        font-family: 'Noto Serif SC', serif;
+      }
+      #app-loader {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: #020305; z-index: 9000;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        transition: opacity 0.8s ease;
+      }
+      #loader-spinner {
+        width: 40px; height: 40px; 
+        border: 1px solid #1a1510; border-top: 2px solid #C5A059; 
+        border-radius: 50%; animation: spin 1s linear infinite;
+        margin-bottom: 24px;
+      }
+      #loader-error {
+        color: #ff6b6b; font-family: serif; font-size: 12px; margin-top: 20px;
+        max-width: 80%; text-align: center; opacity: 0.8;
+      }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      
+      @keyframes candle-flicker {
+        0%, 100% { opacity: 0.85; transform: scale(1) translate(0, 0); filter: blur(120px) brightness(1); }
+        25% { opacity: 0.95; transform: scale(1.02) translate(5px, -5px); filter: blur(115px) brightness(1.1); }
+        50% { opacity: 0.8; transform: scale(0.98) translate(-3px, 2px); filter: blur(130px) brightness(0.9); }
+        75% { opacity: 1; transform: scale(1.05) translate(2px, -3px); filter: blur(110px) brightness(1.2); }
+      }
+      .animate-candle-flicker {
+        animation: candle-flicker 4s ease-in-out infinite;
+      }
+
+      /* --- TYPOGRAPHY UPGRADE: TEXT EFFECTS --- */
+
+      /* 1. 鎏金字体 (Gilded Gold) - High Fidelity */
+      .text-gilded {
+        background: linear-gradient(180deg, #fffce6 0%, #f6d365 25%, #d4af37 50%, #aa8a39 75%, #7a5c29 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 2px 0px rgba(0,0,0,0.5)) drop-shadow(0 5px 10px rgba(0,0,0,0.2));
+      }
+
+      /* 2. 银霜字体 (Frosted Silver) */
+      .text-silver {
+        background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 45%, #94a3b8 55%, #64748b 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8));
+      }
+
+      /* 3. 红铜字体 (Oxidized Copper) - For negative/warning */
+      .text-copper {
+        background: linear-gradient(180deg, #ff9a9e 0%, #ff6b6b 40%, #8c1c0b 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 1px 2px rgba(50,0,0,0.8));
+      }
+
+      /* 4. 水墨阴影 (Ink Shadow) - For body text readability on dark */
+      .text-ink-shadow {
+        color: #e8e4d9;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.5);
+      }
+
+      /* 5. 浮雕效果 (Embossed) - For UI labels */
+      .text-embossed {
+        color: #c5a059;
+        text-shadow: 0 -1px 0 rgba(0,0,0,1), 0 1px 0 rgba(255,255,255,0.1);
+      }
+
+      /* 滚动条美化 */
+      .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: #5c4025 transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: linear-gradient(to bottom, transparent, #8c6239, transparent);
+        border-radius: 10px;
+        box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+      }
+
+      .font-calligraphy { font-family: 'Ma Shan Zheng', cursive; }
+      .font-serif { font-family: 'Noto Serif SC', serif; }
+      .tategaki { writing-mode: vertical-rl; text-orientation: upright; }
+    </style>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React 18 ImportMap -->
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@18.3.1/",
+    "react": "https://esm.sh/react@18.3.1",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "react-dom/": "https://esm.sh/react-dom@18.3.1/",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "vite": "https://esm.sh/vite@^5.4.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^4.3.1",
+    "@react-three/fiber": "https://esm.sh/@react-three/fiber@8.16.8",
+    "@react-three/drei": "https://esm.sh/@react-three/drei@9.108.0",
+    "three": "https://esm.sh/three@0.160.0",
+    "stats.js": "https://esm.sh/stats.js@0.17.0?export=default"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div id="app-loader">
+        <div id="loader-spinner"></div>
+        <div id="loader-text" class="font-serif text-[#C5A059] text-[10px] tracking-[0.5em] opacity-40 uppercase">Spiritus · MaDiao</div>
+        <div id="loader-error"></div>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+
+runtime: nodejs20
+env: standard
+instance_class: F1
+
+# 自动扩缩容设置，保持低成本
+automatic_scaling:
+  max_instances: 5
+  min_instances: 0
+
+handlers:
+  # 1. 静态资源缓存策略 (JS/CSS)
+  - url: /assets
+    static_dir: dist/assets
+    expiration: '7d'
+    secure: always
+
+  # 2. 图片/图标资源
+  - url: /(.*\.(json|ico|png|svg|txt))$
+    static_files: dist/\1
+    upload: dist/.*\.(json|ico|png|svg|txt)$
+    secure: always
+
+  # 3. 单页应用 (SPA) 路由重定向：所有其他请求都返回 index.html
+  - url: /.*
+    static_files: dist/index.html
+    upload: dist/index.html
+    secure: always
